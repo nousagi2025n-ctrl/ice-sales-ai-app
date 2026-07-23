@@ -1,9 +1,7 @@
 import pandas as pd 
 import streamlit as st
-import Numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
-import random
 
 #データの準備と二つのAI学習
 
