@@ -38,12 +38,10 @@ score_dt = r2_score(y_test, model_dt.predict(X_test))
 
 
 #ランダムフォレスト（100本の決定木の森）
-model_rf = RandomForestRegressor(
-    n_estimators= 100, random_state= 42
-) #１００本の木を作る
+model_rf = RandomForestRegressor(n_estimators= 100, random_state= 42) #１００本の木を作る
 #model_rf.fit(X,y)
 model_rf.fit(X_train, y_train)
-score_rf = r2_score(y_test, model_rf.predict(X_train))
+score_rf = r2_score(y_test, model_rf.predict(X_test))
 
 #2. Web画面のデザイン(サイドバーの活用)
 st.title("アイス売上予測 ダッシュボード")
@@ -67,6 +65,16 @@ rain = st.sidebar.slider("降水確率（％）", min_value= 0, max_value= 100, 
 
 #3．メイン画面（右側）の２列レイアウトと予測
 st.write("左側のサイドバーで条件を変更して、「予測実行」ボタンを押してください。")
+
+if model_choice == "線形回帰（シンプル・直線）":
+    selected_model = model_lr
+    current_score = score_lr
+elif model_choice ==  "決定木（複雑・条件分岐)":
+    selected_model = model_dt
+    current_score = score_dt
+else:
+    selected_model = model_rf
+    current_score = score_rf
 
 col1, col2 = st.columns(2)
 
@@ -93,44 +101,48 @@ with col2:
             ],
 
         )
-        if model_choice == "線形回帰（シンプル・直線）":
-            selected_model = model_lr
-            current_score = score_lr
-        elif model_choice ==  "決定木（複雑・条件分岐)":
-            selected_model = model_dt
-            current_score = score_dt
-        else:
-            selected_model = model_rf
-            current_score = score_rf
 
         raw_prediction = selected_model.predict(imput_data)[0]
         prediction = max(0.0, raw_prediction)
 
         #大きなカード型で数値を強調表示
         st.metric(
-            label= f"{model_choice.split('（')[0]}による予測",
+            label= f"{model_choice.split('（')[0]}による予測売上",
             value=f"{prediction:.1f}千円",
-            delta=f"AI制度（R^2): {current_score:.2f}", 
+            delta =f"{current_score:.3f} R^2スコア"
         )
 
 #3. 追加：データの可視化（グラフ表示）
 st.divider() #区切り線
-st.subheader("Aiの診断レポート（特徴量重要度")
+st.subheader("Aiの診断レポート（特徴量重要度)")
 
 report_col1, report_col2 = st.columns(2)
 
 with report_col1:
-    st.markdown("未知データに対する制度（tesst R^2")
+    st.markdown("未知データに対する精度（test R^2)")
     st.metric(label= "実力スコア", value= f"{current_score:.3f}")
 
-with report_col1:
-    st.markdown("特徴量重要度（どの加工データが聞いたか）")
-    if hasattr(selected_model, "feature_importances"):
-        
-        
+with report_col2:
+    st.markdown("特徴量重要度（どの加工データが効いたか？）")
+    if hasattr(selected_model, "feature_importances_"):
+        inportances = selected_model.feature_importances_
+        imp_df = pd.DataFrame(
+            {
+                "特徴量名":[
+                    "気温",
+                    "降水確率",
+                    "気温の二乗",
+                    "蒸し暑さ指標",
+                ],
+                "重要度（％）": inportances *100,
+            }
+        )
+        st.bar_chart(data=imp_df, x="特徴量名", y="重要度（％）")
+    else:
+        st.info("※線形回帰は係数（傾き）を使用します。")
 
 #気温と売上の関係を散布図（scatter chart）で表示
-st.scatter_chart(data=df, x= "Temperature", y= "Sales", color="#FF4B4B")
+#st.scatter_chart(data=df, x= "Temperature", y= "Sales", color="#FF4B4B")
 
 
 
